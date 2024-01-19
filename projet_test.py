@@ -4,8 +4,12 @@ import random
 import threading
 
 
-def player(i) :
-    pass
+def player(i, deck_shuffle, lock) :
+    lock.acquire()
+    print(i)
+    hands[i] = deck_shuffle[1]
+    print(i, hands[i])
+    lock.release()
 
 
 def game() :
@@ -19,9 +23,12 @@ if __name__ == "__main__":
     fuse_token = Value('i', 3)
     
     with Manager() as manager :
-        deck = manager.list(range(0))
+        deck = []
+        deck_shuffle = manager.list(range(N*10))
+        lock = Lock()
         suits = [manager.list(range(0)) for i in range (N)]
         hands = [manager.list(range(0)) for i in range (N)]
+
         for i in range (N) :
             deck.append(1)
             deck.append(1)
@@ -33,4 +40,13 @@ if __name__ == "__main__":
             deck.append(4)
             deck.append(4)
             deck.append(5)
-        print(deck)
+
+        for i in range (N*10) :
+            a = random.randint(0, len(deck)-1)
+            deck_shuffle[i] = deck.pop(a)
+
+        print(deck_shuffle)
+
+        for i in range (N) :
+            thread = threading.Thread(target=player, args=(i, deck_shuffle, lock))
+            thread.start()
