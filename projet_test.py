@@ -4,12 +4,14 @@ import random
 import threading
 
 
-def player(i, deck_shuffle, lock) :
+def player(i, hands) :
     lock.acquire()
-    print(i)
-    hands[i] = deck_shuffle[1]
-    print(i, hands[i])
+    for j in range (5) :
+        a = deck_counter.value
+        hands[i][j] = deck_shuffle[a]
+        deck_counter.value += 1
     lock.release()
+    print(i, hands[i])
 
 
 def game() :
@@ -21,32 +23,32 @@ if __name__ == "__main__":
     players = [threading.Thread(target=player, args=(i,)) for i in range (N)]
     info_token = Value('i', N+3)
     fuse_token = Value('i', 3)
-    
-    with Manager() as manager :
-        deck = []
-        deck_shuffle = manager.list(range(N*10))
-        lock = Lock()
-        suits = [manager.list(range(0)) for i in range (N)]
-        hands = [manager.list(range(0)) for i in range (N)]
 
-        for i in range (N) :
-            deck.append(1)
-            deck.append(1)
-            deck.append(1)
-            deck.append(2)
-            deck.append(2)
-            deck.append(3)
-            deck.append(3)
-            deck.append(4)
-            deck.append(4)
-            deck.append(5)
+    deck = []
+    deck_shuffle = Array('i', range(N*10))
+    deck_counter = Value('i', 0)
+    lock = Lock()
+    suits = [Array('i', range(5)) for i in range (N)]
+    hands = [Array('i', range(5)) for i in range (N)]
 
-        for i in range (N*10) :
-            a = random.randint(0, len(deck)-1)
-            deck_shuffle[i] = deck.pop(a)
+    for i in range (N) :
+        deck.append(1)
+        deck.append(1)
+        deck.append(1)
+        deck.append(2)
+        deck.append(2)
+        deck.append(3)
+        deck.append(3)
+        deck.append(4)
+        deck.append(4)
+        deck.append(5)
 
-        print(deck_shuffle)
+    for i in range (N*10) :
+        a = random.randint(0, len(deck)-1)
+        deck_shuffle[i] = deck.pop(a)
 
-        for i in range (N) :
-            thread = threading.Thread(target=player, args=(i, deck_shuffle, lock))
-            thread.start()
+    print(deck_shuffle)
+
+    for i in range (N) :
+        thread = threading.Thread(target=player, args=(i, hands),)
+        thread.start()
