@@ -4,14 +4,17 @@ import random
 import threading
 
 
-def player(i, hands) :
+def player(i) :
     lock.acquire()
+    print(i, end = " ")
     for j in range (5) :
         a = deck_counter.value
         hands[i][j] = deck_shuffle[a]
         deck_counter.value += 1
+    for j in range (5) :
+        print(hands[i][j], end = " ")
+    print("")
     lock.release()
-    print(i, hands[i])
 
 
 def game() :
@@ -31,24 +34,14 @@ if __name__ == "__main__":
     suits = [Array('i', range(5)) for i in range (N)]
     hands = [Array('i', range(5)) for i in range (N)]
 
+    #Construction du _shuffle à l'aide de deck
     for i in range (N) :
-        deck.append(1)
-        deck.append(1)
-        deck.append(1)
-        deck.append(2)
-        deck.append(2)
-        deck.append(3)
-        deck.append(3)
-        deck.append(4)
-        deck.append(4)
-        deck.append(5)
-
+        deck += [1, 1, 1, 2, 2, 3, 3, 4, 4, 5]
+    
     for i in range (N*10) :
         a = random.randint(0, len(deck)-1)
         deck_shuffle[i] = deck.pop(a)
 
-    print(deck_shuffle)
-
     for i in range (N) :
-        thread = threading.Thread(target=player, args=(i, hands),)
+        thread = threading.Thread(target=player, args=(i,),)
         thread.start()
