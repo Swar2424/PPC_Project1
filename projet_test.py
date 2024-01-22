@@ -5,7 +5,7 @@ import threading
 
 
 def player(i) :
-    lock.acquire()
+    deck_counter.get_lock().acquire()
     print(i, end = " ")
     for j in range (5) :
         a = deck_counter.value
@@ -14,7 +14,7 @@ def player(i) :
     for j in range (5) :
         print(hands[i][j], end = " ")
     print("")
-    lock.release()
+    deck_counter.get_lock().release()
 
 
 def game() :
@@ -30,7 +30,6 @@ if __name__ == "__main__":
     deck = []
     deck_shuffle = Array('i', range(N*10))
     deck_counter = Value('i', 0)
-    lock = Lock()
     suits = [Array('i', range(5)) for i in range (N)]
     hands = [Array('i', range(5)) for i in range (N)]
 
