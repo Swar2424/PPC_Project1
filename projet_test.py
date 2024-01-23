@@ -5,6 +5,8 @@ import threading
 from kbhit_file import kbhit_input, kbhit_input_long
 from queue import Empty
 import player_file
+import game
+
 
 if __name__ == "__main__":
     N = 0
@@ -16,6 +18,8 @@ if __name__ == "__main__":
     deck_queue = Queue()
     message_queue = Queue()
     suits = [Value('i', 0) for i in range (N)]
+    end = Value('i', 0) #variabnle qui indique si le jeu continue (0) ou s'il s'arrête (1)
+
     hands = [Array('i', range(5)) for i in range (N)]
     joueur = Value('i', 0)
     end = Value('i', 1)
@@ -31,7 +35,10 @@ if __name__ == "__main__":
         a = random.randint(0, len(deck)-1)
         deck_queue.put(deck.pop(a))
     
-    players = [Process(target=player_file.player, args=(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token, end)) for i in range (N)]
+    game_start = Process(target=game.game, args= (end, deck_queue, suits, info_token, fuse_token, N))
+    game_start.start()
+
+    players = [Process(target=player_file.player, args=(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token)) for i in range (N)]
 
     for player_process in players :
         player_process.start()

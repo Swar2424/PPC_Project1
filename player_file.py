@@ -16,7 +16,8 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
     for j in range (5) :
         hands[i][j] = deck_queue.get()
     hands[i].get_lock().release()
-    
+    print_hand(i, hands[i], colors)
+
     #Wait for all players to be set
     HOST = "localhost"
     PORT = 8080
