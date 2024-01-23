@@ -1,47 +1,36 @@
-from multiprocessing import Semaphore, Value, Lock, Array, Manager, Process
+from multiprocessing import Semaphore, Value, Lock, Array, Manager, Process, Queue, JoinableQueue
 import time
 import random
 import threading
-
-
-
-def player(i, deck_counter, deck_shuffle, suits, hands) :
-    deck_counter.get_lock().acquire()
-    print(i, end = " ")
-    for j in range (5) :
-        a = deck_counter.value
-        hands[i][j] = deck_shuffle[a]
-        deck_counter.value += 1
-    for j in range (5) :
-        print(hands[i][j], end = " ")
-    print("")
-    deck_counter.get_lock().release()
-
-
-def game() :
-    pass
-
+from kbhit_file import kbhit_input, kbhit_input_long
+from queue import Empty
+import player_file
 
 if __name__ == "__main__":
-    N = int(input("NB players : "))
+    N = 0
+    while N < 1 or N > 5 :
+        N = int(input("NB players : "))
+        
     info_token = Value('i', N+3)
     fuse_token = Value('i', 3)
-
-    deck = []
-    deck_shuffle = Array('i', range(N*10))
-    deck_counter = Value('i', 0)
+    deck_queue = JoinableQueue()
+    message_queue = Queue()
     suits = [Value('i', 0) for i in range (N)]
     hands = [Array('i', range(5)) for i in range (N)]
+    joueur = Value('i', 0)
     
-    players = [Process(target=player, args=(i, deck_counter, deck_shuffle, suits, hands)) for i in range (N)]
+    colors = ["Blue", "Red", "Yellow", "Green", "Orange"]
+    deck = []
 
     #Construction du _shuffle à l'aide de deck
     for i in range (N) :
-        deck += [1, 1, 1, 2, 2, 3, 3, 4, 4, 5]
+        deck += [i*10 + 1, i*10 + 1, i*10 + 1, i*10 + 2, i*10 + 2, i*10 + 3, i*10 + 3, i*10 + 4, i*10 + 4, i*10 + 5]
     
     for i in range (N*10) :
         a = random.randint(0, len(deck)-1)
-        deck_shuffle[i] = deck.pop(a)
+        deck_queue.put(deck.pop(a))
+    
+    players = [Process(target=player_file.player, args=(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token)) for i in range (N)]
 
     for player_process in players :
         player_process.start()
