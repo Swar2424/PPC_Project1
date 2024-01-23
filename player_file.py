@@ -7,21 +7,19 @@ from queue import Empty
 
 
 
-def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token) :
+def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token, end) :
     N = len(hands)
     info_stock = []
     
     hands[i].get_lock().acquire()
     for j in range (5) :
         hands[i][j] = deck_queue.get()
-        deck_queue.task_done()
-    #print_hand(i, hands[i], colors)
     hands[i].get_lock().release()
     
     #Wait for all players to be set
     time.sleep(1)
     
-    while True :
+    while end.value != 0 :
         joueur.get_lock().acquire()
         
         if joueur.value != i :
@@ -35,9 +33,12 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
         else :
             joueur.get_lock().release()
             #Début du tour d'un joueur -- Affichage des données
-            print("--------------------------------------")
-            print("--------------------------------------")
-            print(f"Player {i+1} : ")
+            print("----------------------------------------------------------------------------")
+            print("----------------------------------------------------------------------------")
+            print(f"Turn of Player {i+1} : ")
+            print()
+            print(f"Info tokens : {info_token.value}  ;  Fuse tokens : {fuse_token.value}")
+            print()
             
             #Affichage des mains des autres joueurs
             for j in range (N) :
@@ -53,9 +54,18 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                     print_info(info, colors, hands[i])
                     hands[i].get_lock().release()
                 except :
-                    print("babz failed")
-                    pass
-                
+                    pass  
+            print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+            
+            print()
+            print("Suits :", end = "\n| ")
+            i = 0
+            for suit in suits :
+                print(colors[i], ":", suit.value, end =" | ")
+                i+=1
+            print()
+            print()
+            
             #Inputs du joueur pour son tour
             valide = False
             while not valide :
@@ -64,13 +74,14 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                 try :
                     if str(choice) == "J" :
                         num = int(kbhit_input("Numéro de la carte : "))
+                        print("Card played : ", end = "")
                         print_card(hands[i][num], colors)
-                        print("Valide")
                         valide = True
                         player_select = 0
                         value_select = 0
                         c_or_n = 0
                         #[carte jouée]
+                        hands[i][num] = deck_queue.get()
                     
                     elif str(choice) == "I" :
                         player_select = int(kbhit_input("Player : ")) - 1
@@ -87,7 +98,6 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 if  value_select > N or value_select < 0 :
                                     print("Invalide !")
                                 else :
-                                    print("Valide")
                                     valide = True
                                     #[info couleur]
 
@@ -96,7 +106,6 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 if value_select > 5 or value_select < 1 :
                                     print("Invalide !")
                                 else :
-                                    print("Valide")
                                     valide = True
                                     #[info numéro]
                                     
@@ -145,16 +154,21 @@ def print_card(num, colors) :
     
 
 def print_info(info, colors, hand) :
-    print("- - - - - - - - - - - - - - - - -")
+    print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    has_printed = False
     
     if info[1] == 1 :
         for i in range(len(hand)) :
             if hand[i]//10 == info[2] :
                 print(f"Card n°{i+1} is {colors[info[2]]}")
+                has_printed = True
+        if not has_printed :
+            print(f"No {colors[info[2]]} card")
                 
     elif info[1] == 2 :
         for i in range(len(hand)) :
             if hand[i]%10 == info[2] :
                 print(f"Card n°{i+1} is a {info[2]}")
-                
-    print("- - - - - - - - - - - - - - - - -")
+                has_printed = True
+        if not has_printed :
+            print(f"No {info[2]}")
