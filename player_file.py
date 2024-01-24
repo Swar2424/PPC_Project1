@@ -126,22 +126,25 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 print("Invalide !")
 
                         except :
-                            print("Invalide !")
-                    
-                    joueur.get_lock().acquire()
-                    joueur.value = (joueur.value + 1) % N
-                    joueur.get_lock().release()   
+                            print("Invalide !")  
                          
                     player_socket.sendall(mess.encode())
                     send_info(player_select, c_or_n, value_select, N, message_queue)
                     
+                    joueur.get_lock().acquire()
+                    joueur.value = (joueur.value + 1) % N
+                    joueur.get_lock().release() 
+                    
                 #Attend le signal de fin de tour    
                 continuee = player_socket.recv(1024).decode()
-                print(continuee)
                 
                 if continuee != "19" :
                     end.value = 0
                     print(i, "PANIK")
+            
+            mess = "-1"
+            player_socket.sendall(mess.encode())
+            
                         
                     
 
