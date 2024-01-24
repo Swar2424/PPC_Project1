@@ -9,12 +9,14 @@ def check_card(num, suits, end, fuse_token):
     couleur = num // 10
     if valeur == suits[couleur].value + 1:
         suits[couleur].value += 1
-    else : 
+        return("Card played successfully\n")
+    else :
         if fuse_token.value == 0:
-            print("- - - - - - - - - - - - - - - - -\n          LOOOOOOOOOOOOOOOOOOOOOOOSER !\n- - - - - - - - - - - - - - - - -")
             end.value = 0
+            return("\n\nLOOSER !\n")
         else :
             fuse_token.value -= 1
+            return("Bad card played\n")
 
 
 def send_mess_player(mess, player_list) :
@@ -29,25 +31,27 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
         data = player_socket.recv(1024)
         card = int(data.decode())
         
+        #Si le jeu n'est pas fini
         if card != -1 :
-        
+            
+            #Si une info a été donnée
             if card == 0:
                 info_token.value -= 1
+                mess_end = "Info given\n"
                 
             else : 
-                check_card(card, suits, end, fuse_token)
+                mess_end = check_card(card, suits, end, fuse_token)
 
                 if suits == [Value('i', 5) for _ in range (N)] :
-                    print("- - - - - - - - - - - - - - - - -\n          WINNNNNNNNNNNNNNNNNNNNNNER\n- - - - - - - - - - - - - - - - -")
+                    mess_end = "\n\nWINNER !\n"
                     end.value = 0
                     
 
                 elif deck_queue.empty():
-                        print("- - - - - - - - - - - - - - - - -\n          LOOOOOOOOOOOOOOOOOOOOOOOSER !\n- - - - - - - - - - - - - - - - -")
+                        mess_end = "\n\nLOOSER !\n"
                         end.value = 0
             
-            mess = "19"
-            send_mess_player(mess, player_list)
+            send_mess_player(mess_end, player_list)
         
             if end.value == 0 :
                 data = player_socket.recv(1024)
