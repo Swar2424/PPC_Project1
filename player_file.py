@@ -69,7 +69,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                     print("Suits :", end = "\n| ")
                     k = 0
                     for suit in suits :
-                        print(colors[i], ":", suit.value, end =" | ")
+                        print(colors[k], ":", suit.value, end =" | ")
                         k+=1
                     print()
                     print()
@@ -81,7 +81,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                         
                         try :
                             if str(choice) == "J" :
-                                num = int(kbhit_input("Numéro de la carte : "))
+                                num = int(kbhit_input("Numéro de la carte : ")) - 1
                                 print("Card played : ", end = "")
                                 print_card(hands[i][num], colors)
                                 valide = True
@@ -127,13 +127,21 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
 
                         except :
                             print("Invalide !")
-                            
-                    player_socket.sendall(mess.encode())
-                    send_info(player_select, c_or_n, value_select, N, message_queue)
                     
                     joueur.get_lock().acquire()
                     joueur.value = (joueur.value + 1) % N
-                    joueur.get_lock().release()
+                    joueur.get_lock().release()   
+                         
+                    player_socket.sendall(mess.encode())
+                    send_info(player_select, c_or_n, value_select, N, message_queue)
+                    
+                #Attend le signal de fin de tour    
+                continuee = player_socket.recv(1024).decode()
+                print(continuee)
+                
+                if continuee != "19" :
+                    end.value = 0
+                    print(i, "PANIK")
                         
                     
 
