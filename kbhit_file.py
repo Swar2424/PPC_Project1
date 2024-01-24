@@ -141,15 +141,13 @@ def kbhit_input_long(message):
     while typing:
         if kb.kbhit():
             c = kb.getch()
-            print(c)
+            print(c, end='', flush=True)
             
             if ord(c) == 27 or ord(c) == 13 : # ESC ou ENTER
                 typing = False
             else : word += c
-            #print(word)
 
     kb.set_normal_term()
-    print(word)
     return(word)
 
 # Test    
