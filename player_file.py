@@ -16,7 +16,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
     for j in range (5) :
         hands[i][j] = deck_queue.get()
     hands[i].get_lock().release()
-    print_hand(i, hands[i], colors)
+    #print_hand(i, hands[i], colors)
 
     #Wait for all players to be set
     HOST = "localhost"
@@ -67,10 +67,10 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                     
                     print()
                     print("Suits :", end = "\n| ")
-                    i = 0
+                    k = 0
                     for suit in suits :
                         print(colors[i], ":", suit.value, end =" | ")
-                        i+=1
+                        k+=1
                     print()
                     print()
                     
@@ -88,8 +88,8 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 player_select = 0
                                 value_select = 0
                                 c_or_n = 0
-                                mess = str(hands[i][num])
                                 #[carte jouée]
+                                mess = str(hands[i][num])
                                 hands[i][num] = deck_queue.get()
                             
                             elif str(choice) == "I" :
