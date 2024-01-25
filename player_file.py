@@ -1,4 +1,4 @@
-from multiprocessing import Semaphore, Value, Lock, Array, Manager, Process, Queue, JoinableQueue
+from multiprocessing import Value, Lock, Array, Process, Queue, Event
 import time
 import random
 import threading
@@ -8,16 +8,17 @@ import socket
 
 
 
-def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token, end) :
+def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token, end, start) :
     N = len(hands)
     info_stock = []
     char_mess = ""
+
+    start.wait()
     
     hands[i].get_lock().acquire()
     for j in range (5) :
         hands[i][j] = deck_queue.get()
     hands[i].get_lock().release()
-    #print_hand(i, hands[i], colors)
     
     HOST_int = "localhost"
     PORT_int = 6666 + i
@@ -53,7 +54,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
 
                 else :
                     joueur.get_lock().release()
-                    #Début du tour d'un joueur -- Affichage des données
+                    #Début du tour d'un joueur -- Adata = player_socket.recv(1024)ffichage des données
                     char_mess +="----------------------------------------------------------------------------\n"
                     char_mess +="----------------------------------------------------------------------------\n"
                     char_mess +=f"\nTurn of Player {i+1} : \n\n"
@@ -108,7 +109,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 char_mess, player_select = socket_input(char_mess + "Player : ", client_socket_int)
                                 player_select = int(player_select)-1
                                 
-                                if (player_select >= N or player_select < 0) or player_select == i :
+                                if (player_select >= N or player_select < 0) or player_select == i or info_token.value == 0 :
                                     char_mess +="Invalide !\n"
                                     
                                 else :

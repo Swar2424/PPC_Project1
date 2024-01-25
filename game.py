@@ -1,17 +1,22 @@
 import socket
-from multiprocessing import  Value, Array, Queue
+from multiprocessing import  Value, Array, Queue, Event
 from queue import Empty
 from threading import Thread
+import random
 
 
-def check_card(num, suits, end, fuse_token):
+def check_card(num, suits, end, fuse_token, info_token):
     valeur = num % 10
     couleur = num // 10
+
     if valeur == suits[couleur].value + 1:
         suits[couleur].value += 1
         return("Card played successfully\n")
+        if suits[couleur].value == 5 :
+            info_token.value += 1
+
     else :
-        if fuse_token.value == 0:
+        if fuse_token.value == 1:
             end.value = 0
             return("\n\nLOOSER !\n")
         else :
@@ -40,7 +45,7 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
                 mess_end = "Info given\n"
                 
             else : 
-                mess_end = check_card(card, suits, end, fuse_token)
+                mess_end = check_card(card, suits, end, fuse_token, info_token)
 
                 if suits == [Value('i', 5) for _ in range (N)] :
                     mess_end = "\n\nWINNER !\n"
@@ -61,7 +66,20 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
 
 
 
-def game(end, deck_queue, suits, info_token, fuse_token, N) :
+def game(end, deck_queue, suits, info_token, fuse_token, N, start) :
+
+    #Construction du _shuffle à l'aide de deck
+    deck = []
+
+    for i in range (N) :
+        deck += [i*10 + 1, i*10 + 1, i*10 + 1, i*10 + 2, i*10 + 2, i*10 + 3, i*10 + 3, i*10 + 4, i*10 + 4, i*10 + 5]
+    random.shuffle(deck)
+
+    for i in range (N*10) :
+        deck_queue.put(deck.pop(0))
+
+    #Les joueurs peuvent commencer à piocher
+    start.set()
 
     HOST = "localhost"
     PORT = 8080
