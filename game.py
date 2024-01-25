@@ -11,9 +11,9 @@ def check_card(num, suits, end, fuse_token, info_token):
 
     if valeur == suits[couleur].value + 1:
         suits[couleur].value += 1
-        return("Card played successfully\n")
         if suits[couleur].value == 5 :
             info_token.value += 1
+        return("Card played successfully\n")
 
     else :
         if fuse_token.value == 1:
