@@ -76,7 +76,7 @@ def game(end, deck_queue, suits, info_token, fuse_token, N, start) :
     random.shuffle(deck)
 
     for i in range (N*10) :
-        deck_queue.put(deck.pop(0))
+        deck_queue.send(str(deck.pop(0)).encode(), type = 1)
 
     #Les joueurs peuvent commencer à piocher
     start.set()

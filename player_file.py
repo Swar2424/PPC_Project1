@@ -5,7 +5,7 @@ import threading
 from kbhit_file import kbhit_input, kbhit_input_long
 from queue import Empty
 import socket
-
+import sysv_ipc
 
 
 def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_token, fuse_token, end, start) :
@@ -17,7 +17,8 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
     
     hands[i].get_lock().acquire()
     for j in range (5) :
-        hands[i][j] = deck_queue.get()
+        a, _ = deck_queue.receive(type=1)
+        hands[i][j] = int(a.decode())
     hands[i].get_lock().release()
     
     HOST_int = "localhost"
@@ -48,7 +49,8 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                     
                     #Attente d'info - et du tour de jeu
                     joueur.get_lock().release()
-                    info = message_queue.get()
+                    util, _ = message_queue.receive(type=2)
+                    info = util.decode()
                     if info[0] == i and info[1] != 0 :
                         info_stock.append(info)
 
@@ -56,7 +58,7 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                     joueur.get_lock().release()
                     #Début du tour d'un joueur -- Adata = player_socket.recv(1024)ffichage des données
                     char_mess +="----------------------------------------------------------------------------\n"
-                    char_mess +="----------------------------------------------------------------------------\n"
+                    char_mess +="------------------------------------deck_queue.receive(type=1)----------------------------------------\n"
                     char_mess +=f"\nTurn of Player {i+1} : \n\n"
 
                     char_mess +=f"Info tokens : {info_token.value}  ;  Fuse tokens : {fuse_token.value}\n"
@@ -103,7 +105,8 @@ def player(i, deck_queue, message_queue, suits, hands, colors, joueur, info_toke
                                 c_or_n = 0
                                 #[carte jouée]
                                 mess = str(hands[i][num])
-                                hands[i][num] = deck_queue.get()
+                                a, _ = deck_queue.receive(type=1)
+                                hands[i][num] = a.decode()
                             
                             elif str(choice) == "I" :
                                 char_mess, player_select = socket_input(char_mess + "Player : ", client_socket_int)
@@ -171,8 +174,9 @@ def send_info(player, info, value, N, message_queue) :
     else :
         message = (player, info, value)
     
+    
     for i in range(N-1) :
-        message_queue.put(message)
+        message_queue.send(message.encode(), type=2)
         
         
         

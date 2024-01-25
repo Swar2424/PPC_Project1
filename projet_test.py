@@ -6,6 +6,7 @@ from kbhit_file import kbhit_input, kbhit_input_long
 from queue import Empty
 import player_file
 import game
+import sysv_ipc
 
 
 if __name__ == "__main__":
@@ -15,8 +16,13 @@ if __name__ == "__main__":
         
     info_token = Value('i', N+3)
     fuse_token = Value('i', 3)
-    deck_queue = Queue()
-    message_queue = Queue()
+
+    key = 128
+    key2 = 228
+
+    deck_queue = sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT)
+    message_queue = sysv_ipc.MessageQueue(key2, sysv_ipc.IPC_CREAT)
+
     suits = [Value('i', 0) for i in range (N)]
     end = Value('i', 0) #variable qui indique si le jeu continue (0) ou s'il s'arrête (1)
     start = Event()
