@@ -41,8 +41,10 @@ def print_card(num, colors) :
 
 def print_info(info, colors, hand) :
     char = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n"
+    char += " --- Intel :\n"
     has_printed = False
-    
+    char += f"Player {int(info[0])+1} :\n"
+
     if int(info[1]) == 1 :
         for i in range(len(hand)) :
             if hand[i]//10 == int(info[2]) :
@@ -74,7 +76,7 @@ def socket_input(char) :
 
 if __name__ == "__main__":
     HOST = "localhost"
-    PORT = 8093
+    PORT = 8105
     player_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     player_socket.connect((HOST, PORT))
 
@@ -134,14 +136,13 @@ if __name__ == "__main__":
 
     for j in range (5) :
         a, _ = deck_queue.receive(type=1)
+        print(a.decode())
+        print(a)
         hands[i][j] = int(a.decode())
 
 
     player_socket.sendall(("11").encode())
     start = player_socket.recv(1024).decode()
-
-    print(hands)
-    print(suits)
 
 
     #Wait for all players to be set
@@ -156,7 +157,7 @@ if __name__ == "__main__":
                 #Attente d'info - et du tour de jeu
                 info,_ = message_queue.receive()
                 info = info.decode().split(" ")
-                if int(info[0]) == i and int(info[1]) != 0 :
+                if int(info[1]) != 0 :
                     info_stock.append(info)
 
             else :
@@ -176,10 +177,11 @@ if __name__ == "__main__":
                 #Affichage de l'intel récupéré
                 for info in info_stock :
                     try :
-                        char_mess += print_info(info, colors, hands[i])
+                        char_mess += print_info(info, colors, hands[int(info[0])])
                     except :
                         pass  
                 char_mess +="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n"
+                info_stock = []
                 
                 char_mess +="Suits :\n| "
                 k = 0
@@ -191,10 +193,10 @@ if __name__ == "__main__":
                 #Inputs du joueur pour son tour
                 valide = False
                 while not valide :
-                    char_mess, choice = socket_input(char_mess +'Donner une info (I) ou jouer une carte (J) : ')
+                    char_mess, choice = socket_input(char_mess +'Donner une info (i) ou jouer une carte (j) : ')
                     
                     try :
-                        if str(choice) == "J" :
+                        if str(choice) == "j" :
                             char_mess, num = socket_input(char_mess + "Numéro de la carte : ")
                             num = int(num) -1
                             char_mess +="Card played : "
@@ -208,7 +210,7 @@ if __name__ == "__main__":
                             a, _ = deck_queue.receive(type=1)
                             hands[i][num] = int(a.decode())
                         
-                        elif str(choice) == "I" :
+                        elif str(choice) == "i" :
                             char_mess, player_select = socket_input(char_mess + "Player : ")
                             player_select = int(player_select)-1
                             
@@ -241,13 +243,21 @@ if __name__ == "__main__":
                                         
                                 else :
                                     char_mess +="Invalide !\n"
+                        elif str(choice) == "q" :
+                            print("BREAK")
+                            valide = True
+                            mess = "0"
+                            player_select = 0
+                            value_select = 0
+                            c_or_n = 0
+                            end[0] = 0
                         else :
                             char_mess +="Invalide !\n"
-
                     except :
                         char_mess +="Invalide !\n"  
                         
                 player_socket.sendall(mess.encode())
+                
                 joueur[0] = (joueur[0] + 1) % N
                 send_info(player_select, c_or_n, value_select, N, message_queue)
                 

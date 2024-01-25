@@ -133,10 +133,13 @@ if __name__ == "__main__":
     random.shuffle(deck)
 
     for i in range (N*10) :
-        deck_queue.send(str(deck.pop(0)).encode(), type = 1)
+        b = str(deck.pop(0))
+        a = b.encode()
+        print(a, b)
+        deck_queue.send(a, type = 1)
 
     HOST = "localhost"
-    PORT = 8093
+    PORT = 8105
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
@@ -190,5 +193,7 @@ if __name__ == "__main__":
             shm_suits[i].close()
             shm_hands[i].unlink()
             shm_suits[i].unlink()
+        deck_queue.remove()
+        message_queue.remove()
 
 
