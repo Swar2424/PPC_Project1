@@ -4,6 +4,8 @@ from queue import Empty
 from threading import Thread
 import random
 import numpy as np
+import sysv_ipc
+
 
 
 def check_card(num, suits, end, fuse_token, info_token):
@@ -53,7 +55,7 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
                     end[0] = 0
                     
 
-                elif deck_queue.empty():
+                elif deck_queue.current_messages == 0 :
                         mess_end = "\n\nLOOSER !\n"
                         end[0] = 0
             
@@ -111,15 +113,18 @@ if __name__ == "__main__":
     hands = []
     for i in range (N) :
         shm_hands.append(shared_memory.SharedMemory(create=True, size=(hands_init[i]).nbytes))
-        hands.append(np.ndarray(hands_init[i].shape, dtype=(hands_init[i]).dtype, buffer=(shm_hands[i]).buf))
+        hands.append(np.ndarray((hands_init[i]).shape, dtype = (hands_init[i]).dtype, buffer = (shm_hands[i]).buf))
         hands[i][:] = hands_init[i][:]
         
-    deck_queue = Queue()
-    message_queue = Queue()
 
-    
     mess_colors = "Blue Red Yellow Green Orange"
     colors = mess_colors.split(" ")
+
+    #Récupération des message queues
+    key = 128
+    key2 = 228
+    deck_queue = sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT)
+    message_queue = sysv_ipc.MessageQueue(key2, sysv_ipc.IPC_CREAT)
 
     deck = []
 
@@ -128,10 +133,10 @@ if __name__ == "__main__":
     random.shuffle(deck)
 
     for i in range (N*10) :
-        deck_queue.put(deck.pop(0))
+        deck_queue.send(str(deck.pop(0)).encode(), type = 1)
 
     HOST = "localhost"
-    PORT = 8082
+    PORT = 8093
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
@@ -155,6 +160,11 @@ if __name__ == "__main__":
             BigMessage += shm_hands[i].name + "\n"
 
         send_mess_player(BigMessage, player_list)
+        
+        for player_socket, address in player_list :
+            a = player_socket.recv(1024)
+            if int(a.decode()) != 11 :
+                print("PANIK")
 
         start = "18"
         send_mess_player(start, player_list)
@@ -163,4 +173,22 @@ if __name__ == "__main__":
         
         for t in thread_list :
             t.start()
+
+        for t in thread_list :
+            t.join()
+
+        shm_ft.close()
+        shm_ft.unlink()
+        shm_end.close()
+        shm_end.unlink()
+        shm_it.close()
+        shm_it.unlink()
+        shm_jr.close()
+        shm_jr.unlink()
+        for i in range (N) :
+            shm_hands[i].close()
+            shm_suits[i].close()
+            shm_hands[i].unlink()
+            shm_suits[i].unlink()
+
 

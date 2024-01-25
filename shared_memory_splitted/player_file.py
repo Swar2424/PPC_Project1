@@ -5,6 +5,7 @@ import threading
 from queue import Empty
 import socket
 import numpy as np
+import sysv_ipc
 
 
 
@@ -12,13 +13,13 @@ import numpy as np
 def send_info(player, info, value, N, message_queue) :
     
     if info == 0 :
-        message = (0,0,0)
+        message = "0 0 0"
         
     else :
-        message = (player, info, value)
+        message = f"{player} {info} {value}"
     
     for i in range(N-1) :
-        message_queue.put(message)
+        message_queue.send((message).encode(), type = 1)
         
         
         
@@ -42,21 +43,21 @@ def print_info(info, colors, hand) :
     char = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n"
     has_printed = False
     
-    if info[1] == 1 :
+    if int(info[1]) == 1 :
         for i in range(len(hand)) :
-            if hand[i]//10 == info[2] :
-                char += f"Card n°{i+1} is {colors[info[2]]}\n"
+            if hand[i]//10 == int(info[2]) :
+                char += f"Card n°{i+1} is {colors[int(info[2])]}\n"
                 has_printed = True
         if not has_printed :
-            char += f"No {colors[info[2]]} card\n"
+            char += f"No {colors[int(info[2])]} card\n"
                 
-    elif info[1] == 2 :
+    elif int(info[1]) == 2 :
         for i in range(len(hand)) :
-            if hand[i]%10 == info[2] :
-                char += f"Card n°{i+1} is a {info[2]}\n"
+            if hand[i]%10 == int(info[2]) :
+                char += f"Card n°{i+1} is a {int(info[2])}\n"
                 has_printed = True
         if not has_printed :
-            char += f"No {info[2]}\n"
+            char += f"No {int(info[2])}\n"
     
     return char
 
@@ -73,7 +74,7 @@ def socket_input(char) :
 
 if __name__ == "__main__":
     HOST = "localhost"
-    PORT = 8082
+    PORT = 8093
     player_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     player_socket.connect((HOST, PORT))
 
@@ -84,60 +85,63 @@ if __name__ == "__main__":
     BigMessage = player_socket.recv(10240).decode().split("\n")
     
     N = int(BigMessage[0])
-    print(N)
     mess_colors = str(BigMessage[1])
     colors = mess_colors.split(" ")
-    print
 
 
     #Récupération de joueur
     name_joueur = BigMessage[2]
     shm_jr = shared_memory.SharedMemory(name = name_joueur)
     joueur = np.ndarray((1,), dtype=np.int64, buffer=shm_jr.buf)
-    print(joueur)
 
     #Récupération de info_token
     name_info_token = BigMessage[3]
     shm_it = shared_memory.SharedMemory(name = name_info_token)
     info_token = np.ndarray((1,), dtype=np.int64, buffer=shm_it.buf)
-    print(info_token)
 
     #Récupération de fuse_token
     name_fuse_token = BigMessage[4]
     shm_ft = shared_memory.SharedMemory(name = name_fuse_token)
     fuse_token = np.ndarray((1,), dtype=np.int64, buffer=shm_ft.buf)
-    print(fuse_token)
 
     #Récupération de joueur
     name_end = BigMessage[5]
     shm_end = shared_memory.SharedMemory(name = name_end)
     end = np.ndarray((1,), dtype=np.int64, buffer=shm_end.buf)
-    print(end)
 
     hands = []
     suits = []
-    hands_shm = []
-    suits_shm = []
-    for i in range (N) :
-        name_suit = BigMessage[6+i]
-        name_hand = BigMessage[6+i+1]
-        hands_shm.append(shared_memory.SharedMemory(name = name_hand))
-        suits_shm.append(shared_memory.SharedMemory(name = name_suit))
-        hands.append(np.ndarray((5,), dtype=np.int64, buffer=hands_shm[i].buf))
-        suits.append(np.ndarray((1,), dtype=np.int64, buffer=suits_shm[i].buf))
+    shm_hands = []
+    shm_suits = []
+    for j in range (N) :
+        name_suit = BigMessage[6+j*2]
+        name_hand = BigMessage[6+j*2+1]
+        shm_hands.append(shared_memory.SharedMemory(name = name_hand))
+        shm_suits.append(shared_memory.SharedMemory(name = name_suit))
+        hands.append(np.ndarray((5,), dtype=np.int64, buffer=(shm_hands[j]).buf))
+        suits.append(np.ndarray((1,), dtype=np.int64, buffer=(shm_suits[j]).buf))
 
-
-    print(hands)
-    print(suits)
+    
 
     info_stock = []
     char_mess = ""
 
+    #Récupération des message queues
+    key = 128
+    key2 = 228
+    deck_queue = sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT)
+    message_queue = sysv_ipc.MessageQueue(key2, sysv_ipc.IPC_CREAT)
+
     for j in range (5) :
-        hands[i][j] = deck_queue.get()
+        a, _ = deck_queue.receive(type=1)
+        hands[i][j] = int(a.decode())
 
 
+    player_socket.sendall(("11").encode())
     start = player_socket.recv(1024).decode()
+
+    print(hands)
+    print(suits)
 
 
     #Wait for all players to be set
@@ -146,18 +150,16 @@ if __name__ == "__main__":
     if start == "18" :
         
         while end[0] != 0 :
-            joueur.get_lock().acquire()
             
             if joueur[0] != i :
                 
                 #Attente d'info - et du tour de jeu
-                joueur.get_lock().release()
-                info = message_queue.get()
-                if info[0] == i and info[1] != 0 :
+                info,_ = message_queue.receive()
+                info = info.decode().split(" ")
+                if int(info[0]) == i and int(info[1]) != 0 :
                     info_stock.append(info)
 
             else :
-                joueur.get_lock().release()
                 #Début du tour d'un joueur -- Adata = player_socket.recv(1024)ffichage des données
                 char_mess +="----------------------------------------------------------------------------\n"
                 char_mess +="----------------------------------------------------------------------------\n"
@@ -169,16 +171,12 @@ if __name__ == "__main__":
                 #Affichage des mains des autres joueurs
                 for j in range (N) :
                     if j != i :
-                        hands[j].get_lock().acquire()
                         char_mess += print_hand(j%N, hands[j%N], colors)
-                        hands[j].get_lock().release()
 
                 #Affichage de l'intel récupéré
                 for info in info_stock :
                     try :
-                        hands[i].get_lock().acquire()
                         char_mess += print_info(info, colors, hands[i])
-                        hands[i].get_lock().release()
                     except :
                         pass  
                 char_mess +="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n"
@@ -207,7 +205,8 @@ if __name__ == "__main__":
                             c_or_n = 0
                             #[carte jouée]
                             mess = str(hands[i][num])
-                            hands[i][num] = deck_queue.get()
+                            a, _ = deck_queue.receive(type=1)
+                            hands[i][num] = int(a.decode())
                         
                         elif str(choice) == "I" :
                             char_mess, player_select = socket_input(char_mess + "Player : ")
@@ -249,21 +248,28 @@ if __name__ == "__main__":
                         char_mess +="Invalide !\n"  
                         
                 player_socket.sendall(mess.encode())
+                joueur[0] = (joueur[0] + 1) % N
                 send_info(player_select, c_or_n, value_select, N, message_queue)
                 
-                joueur.get_lock().acquire()
-                joueur[0] = (joueur[0] + 1) % N
-                joueur.get_lock().release() 
-                
+
             #Attend le signal de fin de tour    
             continuee = player_socket.recv(1024).decode()
             char_mess += continuee
             print(char_mess)
             char_mess = ""
         
+        shm_ft.close()
+        shm_end.close()
+        shm_it.close()
+        shm_jr.close()
+        for i in range (N) :
+            shm_hands[i].close()
+            shm_suits[i].close()
         mess = "-1"
         player_socket.sendall(mess.encode())
-            
+    
+
+    
                         
                     
 
