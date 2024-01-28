@@ -8,15 +8,16 @@ import sysv_ipc
 
 
 
-def check_card(num, suits, end, fuse_token, info_token):
+def check_card(num, suits, end, fuse_token, info_token, color_played):
     valeur = num % 10
     couleur = num // 10
 
-    if valeur == suits[couleur] + 1:
-        suits[couleur] += 1
-        if suits[couleur] == 5 :
-            info_token[0] += 1
-        return("Card played successfully\n")
+    if couleur == color_played :
+        if valeur == suits[couleur] + 1:
+            suits[couleur] += 1
+            if suits[couleur] == 5 :
+                info_token[0] += 1
+            return("Card played successfully\n")
 
     else :
         if fuse_token[0] == 1:
@@ -36,9 +37,10 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
     player_socket = player_list[i][0]
     
     while end[0] != 0 :
-        data = player_socket.recv(1024)
-        card = int(data.decode())
-        
+        data = player_socket.recv(1024).decode().split(' ')
+        card = int(data[0])
+        color_played = int(data[1])
+
         #Si le jeu n'est pas fini
         if card != -1 :
             
@@ -48,7 +50,7 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
                 mess_end = "Info given\n"
                 
             else : 
-                mess_end = check_card(card, suits, end, fuse_token, info_token)
+                mess_end = check_card(card, suits, end, fuse_token, info_token, color_played)
 
                 if suits == [Value('i', 5) for _ in range (N)] :
                     mess_end = "\n\nWINNER !\n"
@@ -99,13 +101,9 @@ if __name__ == "__main__":
     joueur[:] = jr[:]
 
     #init des suites
-    suits_init = [np.array([0]) for i in range (N)]
-    shm_suits = []
-    suits = []
-    for i in range (N) :
-        shm_suits.append(shared_memory.SharedMemory(create=True, size=(suits_init[i]).nbytes))
-        suits.append(np.ndarray((suits_init[i]).shape, dtype=(suits_init[i]).dtype, buffer=(shm_suits[i]).buf))
-        suits[i][:] = suits_init[i][:]
+    suits_init = np.array([0 for i in range (N)])
+    shm_suits = shared_memory.SharedMemory(create=True, size=(suits_init).nbytes)
+    suits = np.ndarray((suits_init).shape, dtype=(suits_init).dtype, buffer=(shm_suits).buf)
 
     #init des hands
     hands_init = [np.array([0, 0, 0, 0, 0]) for i in range (N)]
@@ -157,9 +155,9 @@ if __name__ == "__main__":
         BigMessage += shm_it.name + "\n"
         BigMessage += shm_ft.name + "\n"
         BigMessage += shm_end.name + "\n"
+        BigMessage += shm_suits.name + "\n"
 
         for i in range(N) :
-            BigMessage += shm_suits[i].name + "\n"
             BigMessage += shm_hands[i].name + "\n"
 
         send_mess_player(BigMessage, player_list)
@@ -188,11 +186,11 @@ if __name__ == "__main__":
         shm_it.unlink()
         shm_jr.close()
         shm_jr.unlink()
+        shm_suits.close()
+        shm_suits.unlink()
         for i in range (N) :
             shm_hands[i].close()
-            shm_suits[i].close()
             shm_hands[i].unlink()
-            shm_suits[i].unlink()
         deck_queue.remove()
         message_queue.remove()
 
