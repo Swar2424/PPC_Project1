@@ -86,7 +86,10 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
 if __name__ == "__main__":
     N = 0
     while N < 1 or N > 5 :
-        N = int(input("NB players : "))
+        try :
+            N = int(input("NB players : "))
+        except :
+            print("Invalide !")
 
     #init des fuse_token
     ft = np.array([3])
