@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     for j in range (5) :
         a, _ = deck_queue.receive(type=1)
-        hands[i][j] = int(a.decode())
+        hands[i][j] = j+1+10*i
 
 
     player_socket.sendall(("11").encode())

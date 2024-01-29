@@ -58,7 +58,7 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
                     end[0] = 0
                     
             #Si la pioche est vide
-            if deck_queue.current_messages == 0 and end[0] > 0:
+            if deck_queue.current_messages == 0 :
                     end[0] -= 1
 
                     if end[0] == 0 :
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         deck += [i*10 + 1, i*10 + 1, i*10 + 1, i*10 + 2, i*10 + 2, i*10 + 3, i*10 + 3, i*10 + 4, i*10 + 4, i*10 + 5]
     random.shuffle(deck)
 
-    for i in range (N*10) :
+    for i in range (N*6) :
         b = str(deck.pop(0))
         a = b.encode()
         deck_queue.send(a, type = 1)
