@@ -1,8 +1,4 @@
-from multiprocessing import Value, Lock, Array, Process, Queue, Event, shared_memory
-import time
-import random
-import threading
-from queue import Empty
+from multiprocessing import shared_memory
 import socket
 import numpy as np
 import sysv_ipc
@@ -24,50 +20,41 @@ def send_info(player, info, value, N, message_queue) :
         
         
 def print_hand(i, hand, colors) :
-    char = f"Player {i+1} -> "
+    print(f"Player {i+1} -> ", end = "")
     for num in hand :
         color = colors[num//10]
         x = num%10
-        char += f"{x} {color} ; "
-    char += "\n"
-    return char
-    
+        print(f"{x} {color} ; ", end = "")
+    print()
+
     
 def print_card(num, colors) :
     color = colors[num//10]
     x = num%10
-    return (f"{x} {color}")
+    print(f"{x} {color}")
     
 
 def print_info(info, colors, hand) :
-    char = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n"
-    char += " --- Intel :\n"
+    print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+    print(" --- Intel :")
     has_printed = False
-    char += f"Player {int(info[0])+1} :\n"
+    print(f"Player {int(info[0])+1} :")
 
     if int(info[1]) == 1 :
         for i in range(len(hand)) :
             if hand[i]//10 == int(info[2]) :
-                char += f"Card n°{i+1} is {colors[int(info[2])]}\n"
+                print( f"Card n°{i+1} is {colors[int(info[2])]}")
                 has_printed = True
         if not has_printed :
-            char += f"No {colors[int(info[2])]} card\n"
+            print(f"No {colors[int(info[2])]} card")
                 
     elif int(info[1]) == 2 :
         for i in range(len(hand)) :
             if hand[i]%10 == int(info[2]) :
-                char += f"Card n°{i+1} is a {int(info[2])}\n"
+                print(f"Card n°{i+1} is a {int(info[2])}")
                 has_printed = True
         if not has_printed :
-            char += f"No {int(info[2])}\n"
-    
-    return char
-
-
-def socket_input(char) :
-    print(char)
-    mess = input()
-    return ("", mess)
+            print(f"No {int(info[2])}")
 
 
 
@@ -111,22 +98,23 @@ if __name__ == "__main__":
     shm_end = shared_memory.SharedMemory(name = name_end)
     end = np.ndarray((1,), dtype=np.int64, buffer=shm_end.buf)
 
+    #Récupération des suits
+    name_suits = BigMessage[6]
+    shm_suits = shared_memory.SharedMemory(name = name_suits)
+    suits = np.ndarray((N,), dtype=np.int64, buffer=shm_suits.buf)
+
+    #Récupération des hands
     hands = []
-    suits = []
     shm_hands = []
-    shm_suits = []
     for j in range (N) :
         name_suit = BigMessage[6+j*2]
-        name_hand = BigMessage[6+j*2+1]
+        name_hand = BigMessage[7+j]
         shm_hands.append(shared_memory.SharedMemory(name = name_hand))
-        shm_suits.append(shared_memory.SharedMemory(name = name_suit))
         hands.append(np.ndarray((5,), dtype=np.int64, buffer=(shm_hands[j]).buf))
-        suits.append(np.ndarray((1,), dtype=np.int64, buffer=(shm_suits[j]).buf))
 
     
 
     info_stock = []
-    char_mess = ""
 
     #Récupération des message queues
     key = 128
@@ -137,7 +125,6 @@ if __name__ == "__main__":
     for j in range (5) :
         a, _ = deck_queue.receive(type=1)
         print(a.decode())
-        print(a)
         hands[i][j] = int(a.decode())
 
 
@@ -162,87 +149,89 @@ if __name__ == "__main__":
 
             else :
                 #Début du tour d'un joueur -- Adata = player_socket.recv(1024)ffichage des données
-                char_mess +="----------------------------------------------------------------------------\n"
-                char_mess +="----------------------------------------------------------------------------\n"
-                char_mess +=f"\nTurn of Player {i+1} : \n\n"
+                print("----------------------------------------------------------------------------")
+                print("----------------------------------------------------------------------------")
+                print(f"\nTurn of Player {i+1} : \n")
 
-                char_mess +=f"Info tokens : {info_token[0]}  ;  Fuse tokens : {fuse_token[0]}\n"
+                print(f"Info tokens : {info_token[0]}  ;  Fuse tokens : {fuse_token[0]}")
 
                 
                 #Affichage des mains des autres joueurs
                 for j in range (N) :
                     if j != i :
-                        char_mess += print_hand(j%N, hands[j%N], colors)
+                        print_hand(j%N, hands[j%N], colors)
 
                 #Affichage de l'intel récupéré
                 for info in info_stock :
                     try :
-                        char_mess += print_info(info, colors, hands[int(info[0])])
+                        print_info(info, colors, hands[int(info[0])])
                     except :
                         pass  
-                char_mess +="- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n"
+                print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n")
                 info_stock = []
                 
-                char_mess +="Suits :\n| "
+                print("Suits :\n| ", end = "")
                 k = 0
                 for suit in suits :
-                    char_mess +=f"{colors[k]} : {suit} |"
+                    print(f"{colors[k]} : {suit} |", end = " ")
                     k+=1
-                char_mess +="\n\n"
+                print("\n")
                 
                 #Inputs du joueur pour son tour
                 valide = False
                 while not valide :
-                    char_mess, choice = socket_input(char_mess +'Donner une info (i) ou jouer une carte (j) : ')
+                    choice = input('Donner une info (i) ou jouer une carte (j) : ')
                     
                     try :
                         if str(choice) == "j" :
-                            char_mess, num = socket_input(char_mess + "Numéro de la carte : ")
+                            num = input("Card to play (n°) : ")
                             num = int(num) -1
-                            char_mess +="Card played : "
-                            char_mess += print_card(hands[i][num], colors) + "\n"
-                            valide = True
+
+                            print("Card played : ", end = "")
+                            print_card(hands[i][num], colors)
                             player_select = 0
                             value_select = 0
                             c_or_n = 0
-                            #[carte jouée]
+                            valide = True
                             mess = str(hands[i][num])
+                            #[carte jouée]
+                            
                             a, _ = deck_queue.receive(type=1)
                             hands[i][num] = int(a.decode())
                         
                         elif str(choice) == "i" :
-                            char_mess, player_select = socket_input(char_mess + "Player : ")
+                            player_select = input("Player : ")
                             player_select = int(player_select)-1
                             
                             if (player_select >= N or player_select < 0) or player_select == i or info_token[0] == 0 :
-                                char_mess +="Invalide !\n"
+                                print("Invalide !")
                                 
                             else :
-                                char_mess, c_or_n = socket_input(char_mess + "Color (1) or value (2) : ")
+                                c_or_n = input("Color (1) or value (2) : ")
                                 c_or_n = int(c_or_n)
                                 
                                 if c_or_n == 1 :
-                                    char_mess, value_color = socket_input(char_mess + "Color : ")
+                                    value_color = input("Color : ")
                                     value_select = int(colors.index(str(value_color)))
                                     if  value_select > N or value_select < 0 :
-                                        char_mess +="Invalide !\n"
+                                        print("Invalide !")
                                     else :
                                         valide = True
                                         mess = "0"
                                         #[info couleur]
 
                                 elif c_or_n == 2 :
-                                    char_mess, value_select = socket_input(char_mess + "Value : ", )
+                                    value_select = input("Value : ", )
                                     value_select = int(value_select)
                                     if value_select > 5 or value_select < 1 :
-                                        char_mess +="Invalide !\n"
+                                        print("Invalide !")
                                     else :
                                         valide = True
                                         mess = "0"
                                         #[info numéro]
                                         
                                 else :
-                                    char_mess +="Invalide !\n"
+                                    print("Invalide !")
                         elif str(choice) == "q" :
                             print("BREAK")
                             valide = True
@@ -252,9 +241,9 @@ if __name__ == "__main__":
                             c_or_n = 0
                             end[0] = 0
                         else :
-                            char_mess +="Invalide !\n"
+                            print("Invalide !")
                     except :
-                        char_mess +="Invalide !\n"  
+                        print("Invalide !")
                         
                 player_socket.sendall(mess.encode())
                 
@@ -264,17 +253,15 @@ if __name__ == "__main__":
 
             #Attend le signal de fin de tour    
             continuee = player_socket.recv(1024).decode()
-            char_mess += continuee
-            print(char_mess)
-            char_mess = ""
+            print(continuee)
         
         shm_ft.close()
         shm_end.close()
         shm_it.close()
         shm_jr.close()
+        shm_suits.close()
         for i in range (N) :
             shm_hands[i].close()
-            shm_suits[i].close()
         mess = "-1"
         player_socket.sendall(mess.encode())
     
