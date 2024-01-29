@@ -1,6 +1,5 @@
 import socket
-from multiprocessing import  Value, Array, Queue, Event, shared_memory
-from queue import Empty
+from multiprocessing import shared_memory
 from threading import Thread
 import random
 import numpy as np
@@ -8,16 +7,16 @@ import sysv_ipc
 
 
 
-def check_card(num, suits, end, fuse_token, info_token, color_played):
+
+def check_card(num, suits, end, fuse_token, info_token):
     valeur = num % 10
     couleur = num // 10
 
-    if couleur == color_played :
-        if valeur == suits[couleur] + 1:
-            suits[couleur] += 1
-            if suits[couleur] == 5 :
-                info_token[0] += 1
-            return("Card played successfully\n")
+    if valeur == suits[couleur] + 1:
+        suits[couleur] += 1
+        if suits[couleur] == 5 :
+            info_token[0] += 1
+        return("Card played successfully\n")
 
     else :
         if fuse_token[0] == 1:
@@ -37,9 +36,8 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
     player_socket = player_list[i][0]
     
     while end[0] != 0 :
-        data = player_socket.recv(1024).decode().split(' ')
-        card = int(data[0])
-        color_played = int(data[1])
+        data = player_socket.recv(1024).decode()
+        card = int(data)
 
         #Si le jeu n'est pas fini
         if card != -1 :
@@ -50,9 +48,9 @@ def round_game(player_list, i, end, deck_queue, suits, info_token, fuse_token, N
                 mess_end = "Info given\n"
                 
             else : 
-                mess_end = check_card(card, suits, end, fuse_token, info_token, color_played)
+                mess_end = check_card(card, suits, end, fuse_token, info_token)
 
-                if suits == [Value('i', 5) for _ in range (N)] :
+                if suits.all() == 5 :
                     mess_end = "\n\nWINNER !\n"
                     end[0] = 0
                     
@@ -133,7 +131,6 @@ if __name__ == "__main__":
     for i in range (N*10) :
         b = str(deck.pop(0))
         a = b.encode()
-        print(a, b)
         deck_queue.send(a, type = 1)
 
     HOST = "localhost"

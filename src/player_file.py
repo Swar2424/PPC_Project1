@@ -1,8 +1,4 @@
-from multiprocessing import Value, Lock, Array, Process, Queue, Event, shared_memory
-import time
-import random
-import threading
-from queue import Empty
+from multiprocessing import shared_memory
 import socket
 import numpy as np
 import sysv_ipc
@@ -13,7 +9,7 @@ import sysv_ipc
 def send_info(player, info, value, N, message_queue) :
     
     if info == 0 :
-        message = "0"
+        message = "0 0 0"
         
     else :
         message = f"{player} {info} {value}"
@@ -35,7 +31,7 @@ def print_hand(i, hand, colors) :
 def print_card(num, colors) :
     color = colors[num//10]
     x = num%10
-    return (f"{x} {color}")
+    print(f"{x} {color}")
     
 
 def print_info(info, colors, hand) :
@@ -129,7 +125,6 @@ if __name__ == "__main__":
     for j in range (5) :
         a, _ = deck_queue.receive(type=1)
         print(a.decode())
-        print(a)
         hands[i][j] = int(a.decode())
 
 
@@ -191,24 +186,18 @@ if __name__ == "__main__":
                         if str(choice) == "j" :
                             num = input("Card to play (n°) : ")
                             num = int(num) -1
-                            color_played = input("Suit (color) : ")
-                            color_played = int(colors.index(str(color_played)))
 
-                            if  color_played > N or color_played < 0 :
-                                print("Invalide !\n")
-
-                            else :
-                                print("Card played : ", end = "")
-                                print_card(hands[i][num], colors)
-                                player_select = 0
-                                value_select = 0
-                                c_or_n = 0
-                                valide = True
-                                mess = f"{hands[i][num]} {color_played}"
-                                #[carte jouée]
-                                
-                                a, _ = deck_queue.receive(type=1)
-                                hands[i][num] = int(a.decode())
+                            print("Card played : ", end = "")
+                            print_card(hands[i][num], colors)
+                            player_select = 0
+                            value_select = 0
+                            c_or_n = 0
+                            valide = True
+                            mess = str(hands[i][num])
+                            #[carte jouée]
+                            
+                            a, _ = deck_queue.receive(type=1)
+                            hands[i][num] = int(a.decode())
                         
                         elif str(choice) == "i" :
                             player_select = input("Player : ")
@@ -228,7 +217,7 @@ if __name__ == "__main__":
                                         print("Invalide !")
                                     else :
                                         valide = True
-                                        mess = "0 0"
+                                        mess = "0"
                                         #[info couleur]
 
                                 elif c_or_n == 2 :
@@ -238,7 +227,7 @@ if __name__ == "__main__":
                                         print("Invalide !")
                                     else :
                                         valide = True
-                                        mess = "0 0"
+                                        mess = "0"
                                         #[info numéro]
                                         
                                 else :
@@ -246,7 +235,7 @@ if __name__ == "__main__":
                         elif str(choice) == "q" :
                             print("BREAK")
                             valide = True
-                            mess = "0 0"
+                            mess = "0"
                             player_select = 0
                             value_select = 0
                             c_or_n = 0
@@ -273,7 +262,7 @@ if __name__ == "__main__":
         shm_suits.close()
         for i in range (N) :
             shm_hands[i].close()
-        mess = "-1 0"
+        mess = "-1"
         player_socket.sendall(mess.encode())
     
 
